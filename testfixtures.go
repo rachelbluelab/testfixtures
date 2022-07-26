@@ -207,6 +207,19 @@ func ResetSequencesTo(value int64) func(*Loader) error {
 	}
 }
 
+// ShiftSequencesTo sets the value the sequences will be shifted to.
+func ShiftSequencesTo(step int64) func(*Loader) error {
+	return func(l *Loader) error {
+		switch helper := l.helper.(type) {
+		case *postgreSQL:
+			helper.shiftSequencesTo = step
+		default:
+			return fmt.Errorf("testfixtures: ResetSequencesTo is only valid for PostgreSQL databases")
+		}
+		return nil
+	}
+}
+
 // DangerousSkipTestDatabaseCheck will make Loader not check if the database
 // name contains "test". Use with caution!
 func DangerousSkipTestDatabaseCheck() func(*Loader) error {
@@ -639,9 +652,7 @@ func (l *Loader) fixturesFromPaths(paths ...string) ([]*fixtureFile, error) {
 }
 
 func (l *Loader) fixturesFromFilesMultiTables(fileNames ...string) ([]*fixtureFile, error) {
-	var (
-		fixtureFiles = make([]*fixtureFile, 0, len(fileNames))
-	)
+	fixtureFiles := make([]*fixtureFile, 0, len(fileNames))
 
 	for _, f := range fileNames {
 		var (

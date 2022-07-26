@@ -13,6 +13,7 @@ type postgreSQL struct {
 	useDropConstraint  bool
 	skipResetSequences bool
 	resetSequencesTo   int64
+	shiftSequencesTo   int64
 
 	tables                   []string
 	sequences                []string
@@ -326,9 +327,22 @@ func (h *postgreSQL) resetSequences(db *sql.DB) error {
 	}
 
 	for _, sequence := range h.sequences {
-		_, err := db.Exec(fmt.Sprintf("SELECT SETVAL('%s', %d)", sequence, resetSequencesTo))
-		if err != nil {
-			return err
+		if h.shiftSequencesTo > 0 {
+			var lastVal int64
+			if err := db.QueryRow(fmt.Sprintf("SELECT last_value FROM %s", sequence)).Scan(&lastVal); err != nil {
+				return err
+			}
+			resetSequencesTo = lastVal + h.shiftSequencesTo
+
+			_, err := db.Exec(fmt.Sprintf("SELECT SETVAL('%s', %d, false)", sequence, resetSequencesTo))
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err := db.Exec(fmt.Sprintf("SELECT SETVAL('%s', %d)", sequence, resetSequencesTo))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
