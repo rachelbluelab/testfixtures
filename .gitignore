@@ -29,3 +29,7 @@ _testmain.go
 /testfixtures
 /dist
 /tmp
+
+# JetBrains
+*.iml
+.idea
